@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en-gb">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Delivery Dash: play free in your browser</title>
+    <meta name="description" content="Ride a bike down a British street and throw newspapers onto doorsteps. Thirty deliveries, dogs, potholes, a reversing car and a public scoreboard. Free, no download. Developed by Host Hobbit.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Delivery Dash: play free in your browser">
+    <meta property="og:description" content="Thirty deliveries. One bicycle. An entire street having a bad morning. Can you top the scoreboard?">
+    <meta property="og:url" content="https://hosthobbit.github.io/delivery-dash/">
+    <meta property="og:image" content="https://hosthobbit.github.io/delivery-dash/og.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#2f5d9e">
+    <style>
+      :root { --sun: #ffc93c; --ink: #1b2a44; --sky: #2f5d9e; --cream: #fff8e8; }
+      html, body { margin: 0; height: 100%; background: #12203a; color: var(--cream); overflow: hidden;
+        font-family: system-ui, "Segoe UI", "Noto Sans", Roboto, sans-serif; }
+      #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+      #unity-canvas { display: block; background: #000; outline: none; -webkit-user-select: none; user-select: none; }
+      #loader { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 16px; background: linear-gradient(180deg, #8fc6ea 0%, var(--sky) 55%, #12203a 100%); text-align: center; padding: 16px; }
+      #loader h1 { margin: 0; font-size: clamp(38px, 7vw, 84px); font-weight: 900; letter-spacing: 0.02em; color: var(--sun);
+        -webkit-text-stroke: 3px var(--ink); text-shadow: 0 5px 0 var(--ink); font-style: italic; }
+      #loader .tag { font-size: clamp(14px, 1.8vw, 19px); margin-top: -4px; text-shadow: 0 1px 2px #0008; }
+      #bar { width: min(520px, 80vw); height: 16px; border: 3px solid var(--ink); border-radius: 10px; background: var(--cream); overflow: hidden; }
+      #fill { height: 100%; width: 0%; background: var(--sun); transition: width 0.15s; }
+      #status { font-size: 15px; min-height: 1.2em; text-shadow: 0 1px 2px #0008; }
+      #keys { background: rgba(255, 248, 232, 0.95); color: var(--ink); border-radius: 12px; padding: 12px 22px;
+        font-size: 15px; line-height: 1.75; text-align: left; box-shadow: 0 6px 0 rgba(0,0,0,0.25); }
+      #keys b { display: inline-block; min-width: 10em; }
+      #mobile { display: none; max-width: 30em; line-height: 1.5; background: rgba(0,0,0,0.35); border-radius: 10px; padding: 10px 16px; }
+      .touch #mobile { display: block; }
+      .touch #keys { display: none; }
+      #credit { position: fixed; bottom: 10px; left: 0; right: 0; text-align: center; font-size: 13px; letter-spacing: 0.08em; color: #c8d6ee; }
+      #credit a { color: var(--sun); }
+      #error { display: none; color: #ffd0c8; background: rgba(120,0,0,0.5); border-radius: 8px; padding: 8px 14px; max-width: 40em; line-height: 1.6; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+    <div id="loader">
+      <h1>DELIVERY DASH</h1>
+      <div class="tag">Thirty deliveries. One bicycle. An entire street having a bad morning.</div>
+      <div id="bar"><div id="fill"></div></div>
+      <div id="status">Loading…</div>
+      <div id="keys">
+        <div><b>Steer</b>A / D or ← →</div>
+        <div><b>Pedal faster / brake</b>W / S or ↑ ↓</div>
+        <div><b>Aim and throw</b>hold left mouse, let go to throw</div>
+        <div><b>Keyboard-only throw</b>Q / E pick a side, hold Space, let go</div>
+        <div><b>Bell / pause</b>B / Esc</div>
+        <div><b>Gamepad</b>works too: left stick, triggers, A to throw</div>
+      </div>
+      <div id="mobile">Delivery Dash is made for a keyboard and mouse or a gamepad. On a phone or tablet it will load, but you'll need a Bluetooth gamepad or keyboard to play.</div>
+      <div id="error"></div>
+    </div>
+    <div id="credit">Developed by <a href="https://hosthobbit.com" target="_blank" rel="noopener">Host Hobbit</a> · hosthobbit.com</div>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+      if (mobile) document.body.classList.add("touch");
+
+      // a 16:9 game area as big as the window allows
+      function fit() {
+        var w = window.innerWidth, h = window.innerHeight;
+        if (w / h > 16 / 9) w = Math.round(h * 16 / 9); else h = Math.round(w * 9 / 16);
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+      }
+      window.addEventListener("resize", fit);
+      fit();
+
+      function fail(msg) {
+        var e = document.getElementById("error");
+        e.style.display = "block";
+        e.textContent = "Sorry, the game couldn't start in this browser: " + msg + " Try an up-to-date Chrome, Edge or Firefox on a computer.";
+        document.getElementById("status").textContent = "";
+      }
+
+      var script = document.createElement("script");
+      script.src = "Build/3164a67336ff277f5b6fa435591aa0cd.loader.js";
+      script.onerror = function () { fail("the loader didn't download."); };
+      script.onload = function () {
+        createUnityInstance(canvas, {
+          arguments: [],
+          dataUrl: "Build/0037737ef2ae4c9c3eeb92e76570cf45.data.unityweb",
+          frameworkUrl: "Build/a14c5eba52a3c49b1412f6b439fe7b14.framework.js.unityweb",
+          codeUrl: "Build/e89bdc4f89f23a07c120e0e1aecbcfa1.wasm.unityweb",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "Host Hobbit",
+          productName: "Delivery Dash",
+          productVersion: "1.0",
+          // render at CSS-pixel size: keeps high-DPI laptops smooth
+          devicePixelRatio: 1,
+        }, function (p) {
+          document.getElementById("fill").style.width = Math.round(p * 100) + "%";
+          document.getElementById("status").textContent = p < 0.9 ? "Loading… " + Math.round(p * 100) + "%" : "Laying out the street…";
+        }).then(function (instance) {
+          window.unityInstance = instance;
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("credit").style.display = "none";
+          canvas.focus();
+          canvas.addEventListener("pointerdown", function () { canvas.focus(); });
+        }).catch(function (message) { fail(String(message)); });
+      };
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>
