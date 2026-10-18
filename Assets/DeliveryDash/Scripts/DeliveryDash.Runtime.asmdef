@@ -1,0 +1,6 @@
+{
+  "name": "DeliveryDash.Runtime",
+  "rootNamespace": "DeliveryDash",
+  "references": ["Unity.InputSystem", "Unity.Cinemachine", "UnityEngine.UI", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime"],
+  "autoReferenced": true
+}

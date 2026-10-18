@@ -1,0 +1,6 @@
+{
+  "name": "DeliveryDash.Editor",
+  "rootNamespace": "DeliveryDash.EditorTools",
+  "references": ["DeliveryDash.Runtime", "Unity.InputSystem", "Unity.Cinemachine", "UnityEngine.UI", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime"],
+  "includePlatforms": ["Editor"]
+}
